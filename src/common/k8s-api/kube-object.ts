@@ -385,6 +385,19 @@ const resourceApplierAnnotationsForFiltering = [
 
 const filterOutResourceApplierAnnotations = (label: string) => !resourceApplierAnnotationsForFiltering.some(key => label.startsWith(key));
 
+export interface RawKubeObject<
+  Metadata extends KubeObjectMetadata = KubeObjectMetadata,
+  Status = Record<string, unknown>,
+  Spec = Record<string, unknown>,
+> {
+  apiVersion: string;
+  kind: string;
+  metadata: Metadata;
+  status?: Status;
+  spec?: Spec;
+  managedFields?: any;
+}
+
 export class KubeObject<
   Metadata extends KubeObjectMetadata<KubeObjectScope> = KubeObjectMetadata<KubeObjectScope>,
   Status = unknown,
@@ -485,23 +498,6 @@ export class KubeObject<
 
     return Object.entries(labels).map(([name, value]) => `${name}=${value}`);
   }
-
-  /**
-   * These must be RFC6902 compliant paths
-   */
-  private static readonly nonEditablePathPrefixes = [
-    "/metadata/managedFields",
-    "/status",
-  ];
-  private static readonly nonEditablePaths = new Set([
-    "/apiVersion",
-    "/kind",
-    "/metadata/name",
-    "/metadata/selfLink",
-    "/metadata/resourceVersion",
-    "/metadata/uid",
-    ...KubeObject.nonEditablePathPrefixes,
-  ]);
 
   constructor(data: KubeJsonApiData<Metadata, Status, Spec>) {
     if (typeof data !== "object") {
@@ -632,18 +628,6 @@ export class KubeObject<
    * @deprecated use KubeApi.patch instead
    */
   async patch(patch: Patch): Promise<KubeJsonApiData | null> {
-    for (const op of patch) {
-      if (KubeObject.nonEditablePaths.has(op.path)) {
-        throw new Error(`Failed to update ${this.kind}: JSON pointer ${op.path} has been modified`);
-      }
-
-      for (const pathPrefix of KubeObject.nonEditablePathPrefixes) {
-        if (op.path.startsWith(`${pathPrefix}/`)) {
-          throw new Error(`Failed to update ${this.kind}: Child JSON pointer of ${op.path} has been modified`);
-        }
-      }
-    }
-
     const requestKubeObjectPatch = asLegacyGlobalFunctionForExtensionApi(requestKubeObjectPatchInjectable);
 
     return requestKubeObjectPatch(this.getName(), this.kind, this.getNs(), patch);
