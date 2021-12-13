@@ -23,6 +23,8 @@ import visitEntityContextMenuInjectable from "../../../common/catalog/visit-enti
 import activeEntityInjectable from "../../api/catalog/entity/active.injectable";
 import type { Navigate } from "../../navigation/navigate.injectable";
 import navigateInjectable from "../../navigation/navigate.injectable";
+import { getIconBackground, getIconColourHash, getIconMaterial } from "../../../common/catalog/helpers";
+import { EntityIcon } from "../entity-icon";
 
 export interface HotbarEntityIconProps {
   entity: CatalogEntity;
@@ -93,16 +95,15 @@ class NonInjectedHotbarEntityIcon extends React.Component<HotbarEntityIconProps 
   }
 
   render() {
-    const { entity, className, onClick } = this.props;
+    const { entity, className, ...elemProps } = this.props;
 
     return (
       <HotbarIcon
         uid={entity.getId()}
-        title={entity.getName()}
+        colorHash={getIconColourHash(entity)}
         source={entity.metadata.source}
-        src={entity.spec.icon?.src}
-        material={entity.spec.icon?.material}
-        background={entity.spec.icon?.background}
+        material={getIconMaterial(entity)}
+        background={getIconBackground(entity)}
         className={className}
         active={this.isActive(entity)}
         onMenuOpen={() => this.onMenuOpen()}
@@ -113,7 +114,8 @@ class NonInjectedHotbarEntityIcon extends React.Component<HotbarEntityIconProps 
             ? `${entity.getName()} (${entity.metadata.source})`
             : entity.getName()
         )}
-        onClick={onClick}
+        avatarChildren={<EntityIcon entity={entity} />}
+        {...elemProps}
       >
         {this.renderLedIcon()}
         {this.renderKindIcon()}

@@ -45,6 +45,7 @@ import autoRegistrationInjectable from "../common/k8s-api/api-manager/auto-regis
 import assert from "assert";
 import startFrameInjectable from "./start-frame/start-frame.injectable";
 import initializeSentryReportingWithInjectable from "../common/error-reporting/initialize-sentry-reporting.injectable";
+import entityPreferencesStoreInjectable from "../common/entity-preferences/store.injectable";
 
 configurePackages(); // global packages
 registerCustomThemes(); // monaco editor themes
@@ -131,6 +132,9 @@ export async function bootstrap(di: DiContainer) {
   const clusterStore = di.inject(clusterStoreInjectable);
 
   await clusterStore.loadInitialOnRenderer();
+
+  // TODO replace with the runMany
+  di.inject(entityPreferencesStoreInjectable);
 
   // HotbarStore depends on: ClusterStore
   di.inject(hotbarStoreInjectable).load();
