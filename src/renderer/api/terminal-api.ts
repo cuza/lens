@@ -34,6 +34,7 @@ export interface TerminalApiQuery extends Record<string, string | undefined> {
 export interface TerminalEvents extends WebSocketEvents {
   ready: () => void;
   connected: () => void;
+  error: (error: string) => void;
 }
 
 export interface TerminalApiDependencies {
@@ -143,6 +144,9 @@ export class TerminalApi extends WebSocketApi<TerminalEvents> {
           break;
         case TerminalChannels.CONNECTED:
           this.emit("connected");
+          break;
+        case TerminalChannels.ERROR:
+          this.emit("error", message.data);
           break;
         default:
           logger.warn(`[TERMINAL-API]: unknown or unhandleable message type`, message);
