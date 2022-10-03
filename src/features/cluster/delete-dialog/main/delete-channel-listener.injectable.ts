@@ -8,6 +8,7 @@ import clusterStoreInjectable from "../../../../common/cluster-store/cluster-sto
 import directoryForLensLocalStorageInjectable from "../../../../common/directory-for-lens-local-storage/directory-for-lens-local-storage.injectable";
 import deleteFileInjectable from "../../../../common/fs/delete-file.injectable";
 import joinPathsInjectable from "../../../../common/path/join-paths.injectable";
+import { noop } from "../../../../common/utils";
 import { getRequestChannelListenerInjectable } from "../../../../main/utils/channel/channel-listeners/listener-tokens";
 import { deleteClusterChannel } from "../common/delete-channel";
 
@@ -36,14 +37,10 @@ const deleteClusterChannelListenerInjectable = getRequestChannelListenerInjectab
       // Remove from the cluster store as well, this should clear any old settings
       clusterStore.clusters.delete(cluster.id);
 
-      try {
-        // remove the local storage file
-        const localStorageFilePath = joinPaths(directoryForLensLocalStorage, `${cluster.id}.json`);
+      // remove the local storage file
+      const localStorageFilePath = joinPaths(directoryForLensLocalStorage.get(), `${cluster.id}.json`);
 
-        await deleteFile(localStorageFilePath);
-      } catch {
-        // ignore error
-      }
+      await deleteFile(localStorageFilePath).catch(noop);
     };
   },
 });

@@ -18,7 +18,7 @@ import storesAndApisCanBeCreatedInjectable from "../../../renderer/stores-apis-c
 import type { Cluster } from "../../../common/cluster/cluster";
 import navigateToCatalogInjectable from "../../../common/front-end-routing/routes/catalog/navigate-to-catalog.injectable";
 import appEventBusInjectable from "../../../common/app-event-bus/app-event-bus.injectable";
-import directoryForKubeConfigsInjectable from "../../../common/app-paths/directory-for-kube-configs/directory-for-kube-configs.injectable";
+import directoryForKubeConfigsInjectable from "../../../common/app-paths/directory-for-kube-configs.injectable";
 import joinPathsInjectable from "../../../common/path/join-paths.injectable";
 
 const currentClusterServerUrl = "https://localhost";
@@ -216,7 +216,7 @@ describe("Deleting a cluster", () => {
         preferences: {
           clusterName: "some-cluster",
         },
-        kubeConfigPath: joinPaths(directoryForKubeConfigs, "some-cluster.json"),
+        kubeConfigPath: joinPaths(directoryForKubeConfigs.get(), "some-cluster.json"),
       }, {
         clusterServerUrl: singleClusterServerUrl,
       });
