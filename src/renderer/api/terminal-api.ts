@@ -3,7 +3,7 @@
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
-import type { WebSocketEvents } from "./websocket-api";
+import type { WebSocketApiDependencies, WebSocketEvents } from "./websocket-api";
 import { WebSocketApi } from "./websocket-api";
 import isEqual from "lodash/isEqual";
 import url from "url";
@@ -37,7 +37,7 @@ export interface TerminalEvents extends WebSocketEvents {
   error: (error: string) => void;
 }
 
-export interface TerminalApiDependencies {
+export interface TerminalApiDependencies extends WebSocketApiDependencies {
   readonly hostedClusterId: string;
 }
 
@@ -47,7 +47,7 @@ export class TerminalApi extends WebSocketApi<TerminalEvents> {
   @observable public isReady = false;
 
   constructor(protected readonly dependencies: TerminalApiDependencies, protected readonly query: TerminalApiQuery) {
-    super({
+    super(dependencies, {
       flushOnOpen: false,
       pingInterval: 30,
     });
