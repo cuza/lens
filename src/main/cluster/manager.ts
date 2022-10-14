@@ -4,13 +4,11 @@
  */
 
 import "../../common/ipc/cluster";
-import type http from "http";
 import type { ObservableSet } from "mobx";
 import { action, makeObservable, observable, observe, reaction, toJS } from "mobx";
 import type { Cluster } from "../../common/cluster/cluster";
 import logger from "../logger";
-import { apiKubePrefix } from "../../common/vars";
-import { getClusterIdFromHost, isErrnoException } from "../../common/utils";
+import { isErrnoException } from "../../common/utils";
 import type { KubernetesClusterPrometheusMetrics } from "../../common/catalog-entities/kubernetes-cluster";
 import { isKubernetesCluster, KubernetesCluster, LensKubernetesClusterStatus } from "../../common/catalog-entities/kubernetes-cluster";
 import { ipcMainOn } from "../../common/ipc";
@@ -18,12 +16,14 @@ import { once } from "lodash";
 import type { ClusterStore } from "../../common/cluster-store/cluster-store";
 import type { ClusterId } from "../../common/cluster-types";
 import type { CatalogEntityRegistry } from "../catalog";
+import type { GetClusterById } from "../../common/cluster-store/get-by-id.injectable";
 
 const logPrefix = "[CLUSTER-MANAGER]:";
 
 const lensSpecificClusterStatuses: Set<string> = new Set(Object.values(LensKubernetesClusterStatus));
 
 interface Dependencies {
+  getClusterById: GetClusterById;
   readonly store: ClusterStore;
   readonly catalogEntityRegistry: CatalogEntityRegistry;
   readonly clustersThatAreBeingDeleted: ObservableSet<ClusterId>;
@@ -183,7 +183,7 @@ export class ClusterManager {
   @action
   protected syncClustersFromCatalog(entities: KubernetesCluster[]) {
     for (const entity of entities) {
-      const cluster = this.dependencies.store.getById(entity.getId());
+      const cluster = this.dependencies.getClusterById(entity.getId());
 
       if (!cluster) {
         const model = {
@@ -260,27 +260,6 @@ export class ClusterManager {
       cluster.disconnect();
     });
   }
-
-  getClusterForRequest = (req: http.IncomingMessage): Cluster | undefined => {
-    if (!req.headers.host) {
-      return undefined;
-    }
-
-    // lens-server is connecting to 127.0.0.1:<port>/<uid>
-    if (req.url && req.headers.host.startsWith("127.0.0.1")) {
-      const clusterId = req.url.split("/")[1];
-      const cluster = this.dependencies.store.getById(clusterId);
-
-      if (cluster) {
-        // we need to swap path prefix so that request is proxied to kube api
-        req.url = req.url.replace(`/${clusterId}`, apiKubePrefix);
-      }
-
-      return cluster;
-    }
-
-    return this.dependencies.store.getById(getClusterIdFromHost(req.headers.host));
-  };
 }
 
 export function catalogEntityFromCluster(cluster: Cluster) {

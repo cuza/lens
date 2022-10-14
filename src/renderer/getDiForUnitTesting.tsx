@@ -52,6 +52,7 @@ import storageSaveDelayInjectable from "./utils/create-storage/storage-save-dela
 import environmentVariablesInjectable from "../common/utils/environment-variables.injectable";
 import type { GlobalOverride } from "../common/test-utils/get-global-override";
 import type { PartialDeep } from "type-fest";
+import { defaultEditorFontFamily, defaultFontSize, defaultTerminalFontFamily } from "../common/vars";
 
 export const getDiForUnitTesting = (
   opts: { doGeneralOverrides?: boolean } = {},
@@ -163,8 +164,16 @@ export const getDiForUnitTesting = (
       isTableColumnHidden: () => false,
       extensionRegistryUrl: { customUrl: "some-custom-url" },
       syncKubeconfigEntries: observable.map(),
-      terminalConfig: { fontSize: 42 },
-      editorConfiguration: { minimap: {}, tabSize: 42, fontSize: 42 },
+      terminalConfig: {
+        fontSize: defaultFontSize,
+        fontFamily: defaultTerminalFontFamily,
+      },
+      editorConfiguration: {
+        minimap: {},
+        tabSize: 42,
+        fontSize: defaultFontSize,
+        fontFamily: defaultEditorFontFamily,
+      },
       load: () => {},
     } as PartialDeep<UserStore> as UserStore));
 

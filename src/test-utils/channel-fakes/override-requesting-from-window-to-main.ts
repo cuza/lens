@@ -3,7 +3,7 @@
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 import type { DiContainer } from "@ogre-tools/injectable";
-import type { RequestChannel } from "../../common/utils/channel/request-channel-listener-injection-token";
+import type { RequestChannel } from "../../common/utils/channel/request-channel";
 import type { RequestFromChannel } from "../../common/utils/channel/request-from-channel-injection-token";
 import enlistRequestChannelListenerInjectableInMain from "../../main/utils/channel/channel-listeners/enlist-request-channel-listener.injectable";
 import type { RequestChannelListener } from "../../main/utils/channel/channel-listeners/listener-tokens";
