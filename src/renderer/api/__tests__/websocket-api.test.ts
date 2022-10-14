@@ -16,7 +16,16 @@ describe("WebsocketApi tests", () => {
   let api: TestWebSocketApi;
 
   beforeEach(() => {
-    api = new TestWebSocketApi({});
+    api = new TestWebSocketApi({
+      defaultParams: {} as any,
+      logger: {
+        debug: jest.fn(),
+        error: jest.fn(),
+        info: jest.fn(),
+        silly: jest.fn(),
+        warn: jest.fn(),
+      },
+    }, {});
   });
 
   describe("before connection", () => {

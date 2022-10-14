@@ -4,9 +4,9 @@
  */
 import type { DiContainer } from "@ogre-tools/injectable";
 import type { RequestChannel } from "../../common/utils/channel/request-channel";
-import type { RequestFromChannel } from "../../common/utils/channel/request-from-channel-injection-token";
 import enlistRequestChannelListenerInjectableInMain from "../../main/utils/channel/channel-listeners/enlist-request-channel-listener.injectable";
 import type { RequestChannelListener } from "../../main/utils/channel/channel-listeners/listener-tokens";
+import type { RequestFromChannel } from "../../renderer/utils/channel/request-from-channel.injectable";
 import requestFromChannelInjectable from "../../renderer/utils/channel/request-from-channel.injectable";
 
 export const overrideRequestingFromWindowToMain = (mainDi: DiContainer) => {

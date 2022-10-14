@@ -20,10 +20,12 @@ import type { GetClusterForRequest } from "../cluster/get-cluster-for-request.in
 
 export type ServerIncomingMessage = SetRequired<http.IncomingMessage, "url" | "method">;
 
+export type ProxyRequestHandler = (args: ProxyApiRequestArgs) => void | Promise<void>;
+
 interface Dependencies {
   getClusterForRequest: GetClusterForRequest;
-  shellApiRequest: (args: ProxyApiRequestArgs) => void | Promise<void>;
-  kubeApiUpgradeRequest: (args: ProxyApiRequestArgs) => void | Promise<void>;
+  shellApiRequest: ProxyRequestHandler;
+  kubeApiUpgradeRequest: ProxyRequestHandler;
   readonly router: Router;
   readonly proxy: httpProxy;
   readonly lensProxyPort: { set: (portNumber: number) => void };
