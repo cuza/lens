@@ -9,17 +9,21 @@ import { type ApplicationBuilder, getApplicationBuilder } from "../../renderer/c
 
 describe("workload overview", () => {
   let rendered: RenderResult;
-  let applicationBuilder: ApplicationBuilder;
+  let builder: ApplicationBuilder;
 
   beforeEach(async () => {
-    applicationBuilder = getApplicationBuilder().setEnvironmentToClusterFrame();
-    applicationBuilder.allowKubeResource("pods");
-    rendered = await applicationBuilder.render();
+    builder = getApplicationBuilder().setEnvironmentToClusterFrame();
+    builder.allowKubeResource("pods");
+    rendered = await builder.render();
+  });
+
+  afterEach(() => {
+    builder.quit();
   });
 
   describe("when navigating to workload overview", () => {
     beforeEach(() => {
-      applicationBuilder.navigateWith(navigateToWorkloadsOverviewInjectable);
+      builder.navigateWith(navigateToWorkloadsOverviewInjectable);
     });
 
     it("renders", () => {

@@ -67,6 +67,10 @@ describe("installing helm chart from previously opened tab", () => {
     });
   });
 
+  afterEach(() => {
+    builder.quit();
+  });
+
   describe("given tab for installing chart was previously opened, when application is started", () => {
     let rendered: RenderResult;
 

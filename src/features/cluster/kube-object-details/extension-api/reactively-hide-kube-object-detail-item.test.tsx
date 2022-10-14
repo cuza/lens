@@ -82,6 +82,10 @@ describe("reactively hide kube object detail item", () => {
     builder.extensions.enable(testExtension);
   });
 
+  afterEach(() => {
+    builder.quit();
+  });
+
   it("does not show the kube object detail item", () => {
     const actual = rendered.queryByTestId("some-kube-object-detail-item");
 

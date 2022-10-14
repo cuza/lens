@@ -22,17 +22,17 @@ import storageSaveDelayInjectable from "../../renderer/utils/create-storage/stor
 import type { DiContainer } from "@ogre-tools/injectable";
 
 describe("cluster - sidebar and tab navigation for extensions", () => {
-  let applicationBuilder: ApplicationBuilder;
+  let builder: ApplicationBuilder;
   let rendered: RenderResult;
 
   beforeEach(() => {
     useFakeTime("2015-10-21T07:28:00Z");
 
-    applicationBuilder = getApplicationBuilder();
+    builder = getApplicationBuilder();
 
-    applicationBuilder.setEnvironmentToClusterFrame();
+    builder.setEnvironmentToClusterFrame();
 
-    applicationBuilder.beforeWindowStart((windowDi) => {
+    builder.beforeWindowStart((windowDi) => {
       windowDi.override(storageSaveDelayInjectable, () => 250);
 
       windowDi.override(
@@ -40,6 +40,10 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
         () => "/some-directory-for-lens-local-storage",
       );
     });
+  });
+
+  afterEach(() => {
+    builder.quit();
   });
 
   describe("given extension with cluster pages and cluster page menus", () => {
@@ -124,14 +128,14 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
         },
       };
 
-      applicationBuilder.extensions.enable(testExtension);
+      builder.extensions.enable(testExtension);
     });
 
     describe("given no state for expanded sidebar items exists, and navigated to child sidebar item, when rendered", () => {
       beforeEach(async () => {
-        rendered = await applicationBuilder.render();
+        rendered = await builder.render();
 
-        const windowDi = applicationBuilder.applicationWindow.only.di;
+        const windowDi = builder.applicationWindow.only.di;
 
         const navigateToRoute = windowDi.inject(navigateToRouteInjectionToken);
 
@@ -172,7 +176,7 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
 
     describe("given state for expanded sidebar items already exists, when rendered", () => {
       beforeEach(async () => {
-        applicationBuilder.beforeWindowStart(async (windowDi) => {
+        builder.beforeWindowStart(async (windowDi) => {
           const writeJsonFileFake = windowDi.inject(writeJsonFileInjectable);
 
           await writeJsonFileFake(
@@ -186,7 +190,7 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
           );
         });
 
-        rendered = await applicationBuilder.render();
+        rendered = await builder.render();
       });
 
       it("renders", () => {
@@ -208,7 +212,7 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
 
     describe("given state for expanded unknown sidebar items already exists, when rendered", () => {
       beforeEach(async () => {
-        applicationBuilder.beforeWindowStart(async (windowDi) => {
+        builder.beforeWindowStart(async (windowDi) => {
           const writeJsonFileFake = windowDi.inject(writeJsonFileInjectable);
 
           await writeJsonFileFake(
@@ -222,7 +226,7 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
           );
         });
 
-        rendered = await applicationBuilder.render();
+        rendered = await builder.render();
       });
 
       it("renders without errors", () => {
@@ -238,7 +242,7 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
 
     describe("given empty state for expanded sidebar items already exists, when rendered", () => {
       beforeEach(async () => {
-        applicationBuilder.beforeWindowStart(async (windowDi) => {
+        builder.beforeWindowStart(async (windowDi) => {
           const writeJsonFileFake = windowDi.inject(writeJsonFileInjectable);
 
           await writeJsonFileFake(
@@ -249,7 +253,7 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
           );
         });
 
-        rendered = await applicationBuilder.render();
+        rendered = await builder.render();
       });
 
       it("renders without errors", () => {
@@ -267,9 +271,9 @@ describe("cluster - sidebar and tab navigation for extensions", () => {
       let windowDi: DiContainer;
 
       beforeEach(async () => {
-        rendered = await applicationBuilder.render();
+        rendered = await builder.render();
 
-        windowDi = applicationBuilder.applicationWindow.only.di;
+        windowDi = builder.applicationWindow.only.di;
       });
 
       it("renders", () => {

@@ -68,6 +68,8 @@ import createClusterInjectable from "../../../main/create-cluster/create-cluster
 import { onLoadOfApplicationInjectionToken } from "../../../main/start-main-application/runnable-tokens/on-load-of-application-injection-token";
 import currentLocationInjectable from "../../api/current-location.injectable";
 import lensProxyPortInjectable from "../../../main/lens-proxy/lens-proxy-port.injectable";
+import { runManyFor } from "../../../common/runnable/run-many-for";
+import { beforeQuitOfBackEndInjectionToken } from "../../../main/start-main-application/runnable-tokens/before-quit-of-back-end-injection-token";
 
 type Callback = (di: DiContainer) => void | Promise<void>;
 
@@ -118,6 +120,7 @@ export interface ApplicationBuilder {
 
   startHidden: () => Promise<void>;
   render: () => Promise<RenderResult>;
+  quit: () => void;
 
   tray: {
     click: (id: string) => Promise<void>;
@@ -681,6 +684,13 @@ export const getApplicationBuilder = () => {
       await startMainApplication(false);
 
       applicationHasStarted = true;
+    },
+
+    quit() {
+      const runMany = runManyFor(builder.mainDi);
+      const beforeQuitOfBackEnd = runMany(beforeQuitOfBackEndInjectionToken);
+
+      beforeQuitOfBackEnd();
     },
 
     async render() {

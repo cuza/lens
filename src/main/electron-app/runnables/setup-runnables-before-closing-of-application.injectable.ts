@@ -17,13 +17,8 @@ const setupRunnablesBeforeClosingOfApplicationInjectable = getInjectable({
   instantiate: (di) => {
     const runMany = runManySyncFor(di);
 
-    const runRunnablesBeforeQuitOfFrontEnd = runMany(
-      beforeQuitOfFrontEndInjectionToken,
-    );
-
-    const runRunnablesBeforeQuitOfBackEnd = runMany(
-      beforeQuitOfBackEndInjectionToken,
-    );
+    const runRunnablesBeforeQuitOfFrontEnd = runMany(beforeQuitOfFrontEndInjectionToken);
+    const runRunnablesBeforeQuitOfBackEnd = runMany(beforeQuitOfBackEndInjectionToken);
 
     return {
       id: "setup-closing-of-application",

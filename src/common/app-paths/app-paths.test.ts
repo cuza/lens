@@ -55,6 +55,10 @@ describe("app-paths", () => {
     });
   });
 
+  afterEach(() => {
+    builder.quit();
+  });
+
   describe("normally", () => {
     let windowDi: DiContainer;
     let mainDi: DiContainer;

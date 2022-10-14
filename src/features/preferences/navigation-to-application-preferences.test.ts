@@ -16,6 +16,10 @@ describe("preferences - navigation to application preferences", () => {
     builder = getApplicationBuilder();
   });
 
+  afterEach(() => {
+    builder.quit();
+  });
+
   describe("given in some child page of preferences, when rendered", () => {
     let rendered: RenderResult;
     let discover: Discover;

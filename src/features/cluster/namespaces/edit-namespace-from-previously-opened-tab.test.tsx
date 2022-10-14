@@ -45,6 +45,10 @@ describe("cluster/namespaces - edit namespaces from previously opened tab", () =
     builder.allowKubeResource("namespaces");
   });
 
+  afterEach(() => {
+    builder.quit();
+  });
+
   describe("given tab was previously opened, when application is started", () => {
     let rendered: RenderResult;
 
