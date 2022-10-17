@@ -18,9 +18,11 @@ import type { Logger } from "../../../../common/logger";
 import type { TerminalConfig } from "../../../../common/user-store/preferences-helpers";
 import assert from "assert";
 import { TerminalChannels } from "../../../../common/terminal/channels";
-import { LinkProvider } from "xterm-link-provider";
 import type { OpenLinkInBrowser } from "../../../../common/utils/open-link-in-browser.injectable";
 import type { CreateTerminalRenderer } from "./create-renderer.injectable";
+import { WebLinksAddon } from "xterm-addon-web-links";
+import { SearchAddon } from "xterm-addon-search";
+import { WebglAddon } from "xterm-addon-webgl";
 
 export interface TerminalDependencies {
   readonly spawningPool: HTMLElement;
@@ -103,10 +105,25 @@ export class Terminal {
       fontFamily: this.fontFamily,
       theme: this.theme,
     });
+
     // enable terminal addons
     this.xterm.loadAddon(this.fitAddon);
+    this.xterm.loadAddon(new WebLinksAddon());
+    this.xterm.loadAddon(new SearchAddon());
 
     this.xterm.open(this.dependencies.spawningPool);
+
+    try {
+      const webgl = new WebglAddon();
+
+      this.xterm.loadAddon(webgl);
+      webgl.onContextLoss(() => {
+        webgl.dispose();
+      });
+    } catch (error) {
+      this.dependencies.logger.warn("[TERMINAL]: failed to load webgl as renderer, falling back to DOM", error);
+    }
+
     this.xterm.attachCustomKeyEventHandler(this.keyHandler);
     this.xterm.onSelectionChange(this.onSelectionChange);
 
@@ -121,21 +138,11 @@ export class Terminal {
     this.api.on("error", this.onApiError);
     window.addEventListener("resize", this.onResize);
 
-    const linkProvider = new LinkProvider(
-      this.xterm,
-      /https?:\/\/[^\s]+/i,
-      (event, link) => this.dependencies.openLinkInBrowser(link),
-      undefined,
-      0,
-    );
-
     this.disposer.push(
-      this.xterm.registerLinkProvider(linkProvider),
       reaction(() => this.theme, colors => this.xterm.options.theme = colors),
       reaction(() => this.fontSize, this.setFontSize),
       reaction(() => this.fontFamily, this.setFontFamily),
       this.xterm.onData(this.onData),
-      this.fitAddon,
       () => this.api.removeAllListeners(),
       () => window.removeEventListener("resize", this.onResize),
       () => this.elem.removeEventListener("contextmenu", this.onContextMenu),
