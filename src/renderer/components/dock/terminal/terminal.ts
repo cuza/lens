@@ -96,6 +96,7 @@ export class Terminal {
     this.api = api;
 
     this.xterm = this.dependencies.createTerminalRenderer({
+      allowProposedApi: true,
       cursorBlink: true,
       cursorStyle: "bar",
       fontSize: this.fontSize,
@@ -166,11 +167,12 @@ export class Terminal {
   };
 
   onData = (data: string) => {
-    if (!this.api.isReady) return;
-    this.api.sendMessage({
-      type: TerminalChannels.STDIN,
-      data,
-    });
+    if (this.api.isReady) {
+      this.api.sendMessage({
+        type: TerminalChannels.STDIN,
+        data,
+      });
+    }
   };
 
   onScroll = () => {
@@ -178,7 +180,6 @@ export class Terminal {
   };
 
   onClear = () => {
-    console.log("clearing");
     this.xterm.clear();
   };
 
