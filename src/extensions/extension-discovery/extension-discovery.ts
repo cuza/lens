@@ -23,7 +23,7 @@ import type { Stats } from "fs";
 import { constants } from "fs";
 import type { LStat } from "../../common/fs/lstat.injectable";
 import type { ReadDirectory } from "../../common/fs/read-directory.injectable";
-import type { EnsureDirectory } from "../../common/fs/ensure-dir.injectable";
+import type { EnsureDirectory } from "../../common/fs/ensure-directory.injectable";
 import type { AccessPath } from "../../common/fs/access-path.injectable";
 import type { Copy } from "../../common/fs/copy.injectable";
 import type { JoinPaths } from "../../common/path/join-paths.injectable";

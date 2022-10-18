@@ -66,7 +66,7 @@ export class LensProxy {
   protected retryCounters = new Map<string, number>();
 
   constructor(private readonly dependencies: Dependencies) {
-    this.configureProxy(dependencies.proxy);
+    this.configureProxy(this.dependencies.proxy);
 
     this.proxyServer = spdy.createServer({
       spdy: {
@@ -79,7 +79,7 @@ export class LensProxy {
 
     this.proxyServer
       .on("upgrade", (req: ServerIncomingMessage, socket: net.Socket, head: Buffer) => {
-        const cluster = dependencies.getClusterForRequest(req);
+        const cluster = this.dependencies.getClusterForRequest(req);
 
         if (!cluster) {
           this.dependencies.logger.error(`[LENS-PROXY]: Could not find cluster for upgrade request from url=${req.url}`);
@@ -88,8 +88,13 @@ export class LensProxy {
           const isInternal = req.url.startsWith(`${apiPrefix}?`);
           const reqHandler = isInternal ? dependencies.shellApiRequest : dependencies.kubeApiUpgradeRequest;
 
-          (async () => reqHandler({ req, socket, head, cluster }))()
-            .catch(error => this.dependencies.logger.error("[LENS-PROXY]: failed to handle proxy upgrade", error));
+          (async () => {
+            try {
+              await reqHandler({ req, socket, head, cluster });
+            } catch (error) {
+              this.dependencies.logger.error("[LENS-PROXY]: failed to handle proxy upgrade", error);
+            }
+          })();
         }
       });
   }

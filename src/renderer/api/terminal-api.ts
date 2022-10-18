@@ -6,12 +6,12 @@
 import type { WebSocketApiDependencies, WebSocketEvents } from "./websocket-api";
 import { WebSocketApi } from "./websocket-api";
 import isEqual from "lodash/isEqual";
-import url from "url";
 import { makeObservable, observable } from "mobx";
 import { once } from "lodash";
 import { type TerminalMessage, TerminalChannels } from "../../common/terminal/channels";
 import type { RequestShellApiToken } from "../../features/terminal/renderer/request-shell-api-token.injectable";
 import type { CurrentLocation } from "./current-location.injectable";
+import type { ClusterId } from "../../common/cluster-types";
 
 enum TerminalColor {
   RED = "\u001b[31m",
@@ -25,10 +25,9 @@ enum TerminalColor {
   NO_COLOR = "\u001b[0m",
 }
 
-export interface TerminalApiQuery extends Record<string, string | undefined> {
+export interface TerminalApiQuery {
   id: string;
   node?: string;
-  type?: string;
 }
 
 export interface TerminalEvents extends WebSocketEvents {
@@ -39,6 +38,7 @@ export interface TerminalEvents extends WebSocketEvents {
 
 export interface TerminalApiDependencies extends WebSocketApiDependencies {
   readonly currentLocation: CurrentLocation;
+  readonly hostedClusterId: ClusterId;
   requestShellApiToken: RequestShellApiToken;
 }
 
@@ -57,10 +57,6 @@ export class TerminalApi extends WebSocketApi<TerminalEvents> {
       pingInterval: 30,
     });
     makeObservable(this);
-
-    if (query.node) {
-      query.type ||= "node";
-    }
   }
 
   async connect() {
@@ -73,18 +69,19 @@ export class TerminalApi extends WebSocketApi<TerminalEvents> {
     }
 
     const authTokenArray = await this.dependencies.requestShellApiToken(this.query.id);
+
     const { hostname, protocol, port } = this.dependencies.currentLocation;
-    const socketUrl = url.format({
-      protocol: protocol.includes("https") ? "wss" : "ws",
-      hostname,
-      port,
-      pathname: "/api",
-      query: {
-        ...this.query,
-        shellToken: Buffer.from(authTokenArray).toString("base64"),
-      },
-      slashes: true,
-    });
+    const socketProtocol = protocol.includes("https") ? "wss" : "ws";
+
+    const socketUrl = new URL(`${socketProtocol}://${hostname}:${port}/api`);
+
+    socketUrl.searchParams.append("id", this.query.id);
+    socketUrl.searchParams.append("shellToken", Buffer.from(authTokenArray).toString("base64"));
+    socketUrl.searchParams.append("clusterId", this.dependencies.hostedClusterId);
+
+    if (this.query.node) {
+      socketUrl.searchParams.append("node", this.query.node);
+    }
 
     const onReady = once((data?: string) => {
       this.isReady = true;
@@ -109,7 +106,7 @@ export class TerminalApi extends WebSocketApi<TerminalEvents> {
 
     this.prependListener("data", onReady);
     this.prependListener("connected", onReady);
-    this.connectTo(socketUrl);
+    this.connectTo(socketUrl.toString());
   }
 
   sendMessage(message: TerminalMessage) {

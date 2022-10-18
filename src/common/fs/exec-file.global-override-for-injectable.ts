@@ -4,8 +4,8 @@
  */
 
 import { getGlobalOverride } from "../test-utils/get-global-override";
-import ensureDirInjectable from "./ensure-dir.injectable";
+import execFileInjectable from "./exec-file.injectable";
 
-export default getGlobalOverride(ensureDirInjectable, () => async () => {
-  throw new Error("tried to ensure directory without override");
+export default getGlobalOverride(execFileInjectable, () => () => {
+  throw new Error("tried to exec file without override");
 });

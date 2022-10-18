@@ -9,7 +9,6 @@ import { setImmediate } from "timers";
 import { TextEncoder, TextDecoder as TextDecoderNode } from "util";
 import glob from "glob";
 import path from "path";
-import { WebSocket } from "ws";
 
 // setup default configuration for external npm-packages
 configurePackages();
@@ -41,8 +40,6 @@ global.ResizeObserver = class {
   unobserve = () => {};
   disconnect = () => {};
 };
-
-global.WebSocket = WebSocket as any;
 
 jest.mock("./renderer/components/monaco-editor/monaco-editor");
 jest.mock("./renderer/components/tooltip/withTooltip");

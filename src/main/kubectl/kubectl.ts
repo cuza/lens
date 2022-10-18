@@ -3,20 +3,24 @@
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
-import fs from "fs";
-import { promiseExecFile } from "../../common/utils/promise-exec";
-import logger from "../logger";
-import { ensureDir, pathExists } from "fs-extra";
 import * as lockFile from "proper-lockfile";
 import { SemVer, coerce } from "semver";
 import { defaultPackageMirror, packageMirrors } from "../../common/user-store/preferences-helpers";
-import got from "got/dist/source";
-import { promisify } from "util";
 import stream from "stream";
-import { noop } from "lodash/fp";
 import type { JoinPaths } from "../../common/path/join-paths.injectable";
 import type { GetDirnameOfPath } from "../../common/path/get-dirname.injectable";
 import type { GetBasenameOfPath } from "../../common/path/get-basename.injectable";
+import type { Logger } from "../../common/logger";
+import type { RemovePath } from "../../common/fs/remove-path.injectable";
+import type { PathExists } from "../../common/fs/path-exists.injectable";
+import type { ExecFile } from "../../common/fs/exec-file.injectable";
+import type { EnsureDirectory } from "../../common/fs/ensure-directory.injectable";
+import { promisify } from "util";
+import type { ChangePathMode } from "../../common/fs/change-path-mode.injectable";
+import type { WriteFile } from "../../common/fs/write-file.injectable";
+import type { CopyFile } from "../../common/fs/copy-file.injectable";
+import type { CreateWriteFileStream } from "../../common/fs/create-write-file-stream.injectable";
+import type { Fetch } from  "../../common/fetch/fetch.injectable";
 
 const initScriptVersionString = "# lens-initscript v3";
 
@@ -35,9 +39,19 @@ export interface KubectlDependencies {
   };
   readonly bundledKubectlVersion: string;
   readonly kubectlVersionMap: Map<string, string>;
+  readonly logger: Logger;
   joinPaths: JoinPaths;
   getDirnameOfPath: GetDirnameOfPath;
   getBasenameOfPath: GetBasenameOfPath;
+  removePath: RemovePath;
+  pathExists: PathExists;
+  execFile: ExecFile;
+  ensureDirectory: EnsureDirectory;
+  changePathMode: ChangePathMode;
+  writeFile: WriteFile;
+  copyFile: CopyFile;
+  createWriteFileStream: CreateWriteFileStream;
+  fetch: Fetch;
 }
 
 export class Kubectl {
@@ -66,13 +80,13 @@ export class Kubectl {
      */
     if (fromMajorMinor) {
       this.kubectlVersion = fromMajorMinor;
-      logger.debug(`Set kubectl version ${this.kubectlVersion} for cluster version ${clusterVersion} using version map`);
+      this.dependencies.logger.debug(`Set kubectl version ${this.kubectlVersion} for cluster version ${clusterVersion} using version map`);
     } else {
       /* this is the version (without possible prelease tag) to get from the download mirror */
       const ver = coerce(version.format()) ?? bundledVersion;
 
       this.kubectlVersion = ver.format();
-      logger.debug(`Set kubectl version ${this.kubectlVersion} for cluster version ${clusterVersion} using fallback`);
+      this.dependencies.logger.debug(`Set kubectl version ${this.kubectlVersion} for cluster version ${clusterVersion} using fallback`);
     }
 
     this.url = `${this.getDownloadMirror()}/v${this.kubectlVersion}/bin/${this.dependencies.normalizedDownloadPlatform}/${this.dependencies.normalizedDownloadArch}/${this.dependencies.kubectlBinaryName}`;
@@ -114,14 +128,14 @@ export class Kubectl {
 
     try {
       if (!await this.ensureKubectl()) {
-        logger.error("Failed to ensure kubectl, fallback to the bundled version");
+        this.dependencies.logger.error("Failed to ensure kubectl, fallback to the bundled version");
 
         return this.getBundledPath();
       }
 
       return this.path;
     } catch (err) {
-      logger.error("Failed to ensure kubectl, fallback to the bundled version", err);
+      this.dependencies.logger.error("Failed to ensure kubectl, fallback to the bundled version", err);
 
       return this.getBundledPath();
     }
@@ -134,44 +148,48 @@ export class Kubectl {
 
       return this.dirname;
     } catch (err) {
-      logger.error("Failed to get biniary directory", err);
+      this.dependencies.logger.error("Failed to get biniary directory", err);
 
       return "";
     }
   }
 
   public async checkBinary(path: string, checkVersion = true) {
-    const exists = await pathExists(path);
+    const exists = await this.dependencies.pathExists(path);
 
     if (exists) {
-      try {
-        const args = [
-          "version",
-          "--client",
-          "--output", "json",
-        ];
-        const { stdout } = await promiseExecFile(path, args);
-        const output = JSON.parse(stdout);
+      const result = await this.dependencies.execFile(path, [
+        "version",
+        "--client",
+        "--output", "json",
+      ]);
 
-        if (!checkVersion) {
-          return true;
-        }
-        let version: string = output.clientVersion.gitVersion;
+      if (!result.callWasSuccessful) {
+        this.dependencies.logger.error(`Local kubectl failed to run properly (${result.error.error}), removing`);
+        await this.dependencies.removePath(this.path);
 
-        if (version[0] === "v") {
-          version = version.slice(1);
-        }
-
-        if (version === this.kubectlVersion) {
-          logger.debug(`Local kubectl is version ${this.kubectlVersion}`);
-
-          return true;
-        }
-        logger.error(`Local kubectl is version ${version}, expected ${this.kubectlVersion}, unlinking`);
-      } catch (error) {
-        logger.error(`Local kubectl failed to run properly (${error}), unlinking`);
+        return false;
       }
-      await fs.promises.unlink(this.path);
+
+      const output = JSON.parse(result.response);
+
+      if (!checkVersion) {
+        return true;
+      }
+      let version: string = output.clientVersion.gitVersion;
+
+      if (version[0] === "v") {
+        version = version.slice(1);
+      }
+
+      if (version === this.kubectlVersion) {
+        this.dependencies.logger.debug(`Local kubectl is version ${this.kubectlVersion}`);
+
+        return true;
+      }
+
+      this.dependencies.logger.error(`Local kubectl is version ${version}, expected ${this.kubectlVersion}, removing`);
+      await this.dependencies.removePath(this.path);
     }
 
     return false;
@@ -180,16 +198,16 @@ export class Kubectl {
   protected async checkBundled(): Promise<boolean> {
     if (this.kubectlVersion === this.dependencies.bundledKubectlVersion) {
       try {
-        const exist = await pathExists(this.path);
+        const exist = await this.dependencies.pathExists(this.path);
 
         if (!exist) {
-          await fs.promises.copyFile(this.getBundledPath(), this.path);
-          await fs.promises.chmod(this.path, 0o755);
+          await this.dependencies.copyFile(this.getBundledPath(), this.path);
+          await this.dependencies.changePathMode(this.path, 0o755);
         }
 
         return true;
       } catch (err) {
-        logger.error(`Could not copy the bundled kubectl to app-data: ${err}`);
+        this.dependencies.logger.error(`Could not copy the bundled kubectl to app-data: ${err}`);
 
         return false;
       }
@@ -204,17 +222,17 @@ export class Kubectl {
     }
 
     if (Kubectl.invalidBundle) {
-      logger.error(`Detected invalid bundle binary, returning ...`);
+      this.dependencies.logger.error(`Detected invalid bundle binary, returning ...`);
 
       return false;
     }
 
-    await ensureDir(this.dirname, 0o755);
+    await this.dependencies.ensureDirectory(this.dirname, 0o755);
 
     try {
       const release = await lockFile.lock(this.dirname);
 
-      logger.debug(`Acquired a lock for ${this.kubectlVersion}`);
+      this.dependencies.logger.debug(`Acquired a lock for ${this.kubectlVersion}`);
       const bundled = await this.checkBundled();
       let isValid = await this.checkBinary(this.path, !bundled);
 
@@ -222,8 +240,8 @@ export class Kubectl {
         try {
           await this.downloadKubectl();
         } catch (error) {
-          logger.error(`[KUBECTL]: failed to download kubectl`, error);
-          logger.debug(`[KUBECTL]: Releasing lock for ${this.kubectlVersion}`);
+          this.dependencies.logger.error(`[KUBECTL]: failed to download kubectl`, error);
+          this.dependencies.logger.debug(`[KUBECTL]: Releasing lock for ${this.kubectlVersion}`);
           await release();
 
           return false;
@@ -233,38 +251,38 @@ export class Kubectl {
       }
 
       if (!isValid) {
-        logger.debug(`[KUBECTL]: Releasing lock for ${this.kubectlVersion}`);
+        this.dependencies.logger.debug(`[KUBECTL]: Releasing lock for ${this.kubectlVersion}`);
         await release();
 
         return false;
       }
 
-      logger.debug(`[KUBECTL]: Releasing lock for ${this.kubectlVersion}`);
+      this.dependencies.logger.debug(`[KUBECTL]: Releasing lock for ${this.kubectlVersion}`);
       await release();
 
       return true;
     } catch (error) {
-      logger.error(`[KUBECTL]: Failed to get a lock for ${this.kubectlVersion}`, error);
+      this.dependencies.logger.error(`[KUBECTL]: Failed to get a lock for ${this.kubectlVersion}`, error);
 
       return false;
     }
   }
 
   public async downloadKubectl() {
-    await ensureDir(this.dependencies.getDirnameOfPath(this.path), 0o755);
+    await this.dependencies.ensureDirectory(this.dependencies.getDirnameOfPath(this.path), 0o755);
 
-    logger.info(`Downloading kubectl ${this.kubectlVersion} from ${this.url} to ${this.path}`);
+    this.dependencies.logger.info(`Downloading kubectl ${this.kubectlVersion} from ${this.url} to ${this.path}`);
 
-    const downloadStream = got.stream({ url: this.url, decompress: true });
-    const fileWriteStream = fs.createWriteStream(this.path, { mode: 0o755 });
+    const response = await this.dependencies.fetch(this.url, { compress: true });
+    const fileWriteStream = this.dependencies.createWriteFileStream(this.path, { mode: 0o755 });
     const pipeline = promisify(stream.pipeline);
 
     try {
-      await pipeline(downloadStream, fileWriteStream);
-      await fs.promises.chmod(this.path, 0o755);
-      logger.debug("kubectl binary download finished");
+      await pipeline(response.body, fileWriteStream);
+      await this.dependencies.changePathMode(this.path, 0o755);
+      this.dependencies.logger.debug("kubectl binary download finished");
     } catch (error) {
-      await fs.promises.unlink(this.path).catch(noop);
+      await this.dependencies.removePath(this.path);
       throw error;
     }
   }
@@ -330,8 +348,8 @@ export class Kubectl {
     ].join("\n");
 
     await Promise.all([
-      fs.promises.writeFile(bashScriptPath, bashScript, { mode: 0o644 }),
-      fs.promises.writeFile(zshScriptPath, zshScript, { mode: 0o644 }),
+      this.dependencies.writeFile(bashScriptPath, bashScript, { mode: 0o644 }),
+      this.dependencies.writeFile(zshScriptPath, zshScript, { mode: 0o644 }),
     ]);
   }
 

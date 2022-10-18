@@ -3,7 +3,7 @@
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 import { getDiForUnitTesting } from "../getDiForUnitTesting";
-import { KubeconfigManager } from "../kubeconfig-manager/kubeconfig-manager";
+import type { KubeconfigManager } from "../kubeconfig-manager/kubeconfig-manager";
 import type { Cluster } from "../../common/cluster/cluster";
 import createKubeconfigManagerInjectable from "../kubeconfig-manager/create-kubeconfig-manager.injectable";
 import { createClusterInjectionToken } from "../../common/cluster/create-cluster-injection-token";
@@ -27,6 +27,7 @@ import type { PathExists } from "../../common/fs/path-exists.injectable";
 import pathExistsInjectable from "../../common/fs/path-exists.injectable";
 import type { DeleteFile } from "../../common/fs/delete-file.injectable";
 import deleteFileInjectable from "../../common/fs/delete-file.injectable";
+import lensProxyPortInjectable from "../lens-proxy/lens-proxy-port.injectable";
 
 const clusterServerUrl = "https://192.168.64.3:8443";
 
@@ -84,6 +85,10 @@ describe("kubeconfig manager tests", () => {
       ensureServer: ensureServerMock,
     }));
 
+    di.override(lensProxyPortInjectable, () => ({
+      get: () => 9191,
+    }));
+
     const createCluster = di.inject(createClusterInjectionToken);
 
     createKubeconfigManager = di.inject(createKubeconfigManagerInjectable);
@@ -95,8 +100,6 @@ describe("kubeconfig manager tests", () => {
     }, {
       clusterServerUrl,
     });
-
-    jest.spyOn(KubeconfigManager.prototype, "resolveProxyUrl", "get").mockReturnValue("http://127.0.0.1:9191/foo");
 
     kubeConfManager = createKubeconfigManager(clusterFake);
   });

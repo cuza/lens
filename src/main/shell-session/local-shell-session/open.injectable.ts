@@ -18,10 +18,13 @@ import getDirnameOfPathInjectable from "../../../common/path/get-dirname.injecta
 import joinPathsInjectable from "../../../common/path/join-paths.injectable";
 import getBasenameOfPathInjectable from "../../../common/path/get-basename.injectable";
 import computeShellEnvironmentInjectable from "../../utils/shell-env/compute-shell-environment.injectable";
-import spawnPtyInjectable from "../spawn-pty.injectable";
 import resolvedShellInjectable from "../../../common/user-store/resolved-shell.injectable";
 import appNameInjectable from "../../../common/vars/app-name.injectable";
 import buildVersionInjectable from "../../vars/build-version/build-version.injectable";
+import shellEnvironmentCacheInjectable from "../shell-environment-cache.injectable";
+import shellProcessesInjectable from "../shell-processes.injectable";
+import homeDirectoryPathInjectable from "../../../common/os/home-directory-path.injectable";
+import pathDelimiterInjectable from "../../../common/path/delimiter.injectable";
 
 export interface OpenLocalShellSessionArgs {
   websocket: WebSocket;
@@ -50,7 +53,10 @@ const openLocalShellSessionInjectable = getInjectable({
       joinPaths: di.inject(joinPathsInjectable),
       getBasenameOfPath: di.inject(getBasenameOfPathInjectable),
       computeShellEnvironment: di.inject(computeShellEnvironmentInjectable),
-      spawnPty: di.inject(spawnPtyInjectable),
+      shellEnvironmentCache: di.inject(shellEnvironmentCacheInjectable),
+      shellProcesses: di.inject(shellProcessesInjectable),
+      homeDirectory: di.inject(homeDirectoryPathInjectable),
+      pathDelimiter: di.inject(pathDelimiterInjectable),
     };
 
     return (args) => {

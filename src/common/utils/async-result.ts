@@ -5,3 +5,7 @@
 export type AsyncResult<Response, Error = string> =
   | { callWasSuccessful: true; response: Response }
   | { callWasSuccessful: false; error: Error };
+
+export type Result<Response, Error = string> =
+  | { callWasSuccessful: true; response: Response }
+  | { callWasSuccessful: false; error: Error };
