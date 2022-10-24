@@ -7,13 +7,16 @@ import "./jobs.scss";
 
 import React from "react";
 import { observer } from "mobx-react";
-import { jobStore } from "./legacy-store";
-import { eventStore } from "../+events/legacy-store";
 import { KubeObjectListLayout } from "../kube-object-list-layout";
 import kebabCase from "lodash/kebabCase";
 import { KubeObjectStatusIcon } from "../kube-object-status-icon";
 import { SiblingsInTabLayout } from "../layout/siblings-in-tab-layout";
 import { KubeObjectAge } from "../kube-object/age";
+import type { JobStore } from "./store";
+import type { EventStore } from "../+events/store";
+import { withInjectables } from "@ogre-tools/injectable-react";
+import eventStoreInjectable from "../+events/store.injectable";
+import jobStoreInjectable from "./store.injectable";
 
 enum columnId {
   name = "name",
@@ -23,9 +26,16 @@ enum columnId {
   age = "age",
 }
 
+interface Dependencies {
+  jobStore: JobStore;
+  eventStore: EventStore;
+}
+
 @observer
-export class Jobs extends React.Component {
+class NonInjectableJobs extends React.Component<Dependencies> {
   render() {
+    const { jobStore, eventStore } = this.props;
+
     return (
       <SiblingsInTabLayout>
         <KubeObjectListLayout
@@ -72,3 +82,11 @@ export class Jobs extends React.Component {
     );
   }
 }
+
+export const Jobs = withInjectables<Dependencies>(NonInjectableJobs, {
+  getProps: (di, props) => ({
+    eventStore: di.inject(eventStoreInjectable),
+    jobStore: di.inject(jobStoreInjectable),
+    ...props,
+  }),
+});
