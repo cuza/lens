@@ -15,7 +15,6 @@ import { Button } from "../button";
 import { configMapStore } from "./legacy-store";
 import type { KubeObjectDetailsProps } from "../kube-object-details";
 import { ConfigMap } from "../../../common/k8s-api/endpoints";
-import { KubeObjectMeta } from "../kube-object-meta";
 import logger from "../../../common/logger";
 
 export interface ConfigMapDetailsProps extends KubeObjectDetailsProps<ConfigMap> {
@@ -83,7 +82,6 @@ export class ConfigMapDetails extends React.Component<ConfigMapDetailsProps> {
 
     return (
       <div className="ConfigMapDetails">
-        <KubeObjectMeta object={configMap}/>
         {
           data.length > 0 && (
             <>

@@ -17,7 +17,6 @@ import { Icon } from "../icon";
 import { secretStore } from "./legacy-store";
 import type { KubeObjectDetailsProps } from "../kube-object-details";
 import { Secret } from "../../../common/k8s-api/endpoints";
-import { KubeObjectMeta } from "../kube-object-meta";
 import logger from "../../../common/logger";
 
 export interface SecretDetailsProps extends KubeObjectDetailsProps<Secret> {
@@ -148,7 +147,6 @@ export class SecretDetails extends React.Component<SecretDetailsProps> {
 
     return (
       <div className="SecretDetails">
-        <KubeObjectMeta object={secret}/>
         <DrawerItem name="Type">
           {secret.type}
         </DrawerItem>

@@ -15,7 +15,6 @@ import type { Secret, ServiceAccount } from "../../../../common/k8s-api/endpoint
 import { DrawerItem, DrawerTitle } from "../../drawer";
 import { Icon } from "../../icon";
 import type { KubeObjectDetailsProps } from "../../kube-object-details";
-import { KubeObjectMeta } from "../../kube-object-meta";
 import { Spinner } from "../../spinner";
 import { ServiceAccountsSecret } from "./secret";
 import { getDetailsUrl } from "../../kube-detail-params";
@@ -129,8 +128,6 @@ export class ServiceAccountsDetails extends React.Component<ServiceAccountsDetai
 
     return (
       <div className="ServiceAccountsDetails">
-        <KubeObjectMeta object={serviceAccount}/>
-
         {tokens.length > 0 && (
           <DrawerItem name="Tokens" className="links">
             {this.renderSecretLinks(tokens)}
