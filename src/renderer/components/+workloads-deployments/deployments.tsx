@@ -8,8 +8,6 @@ import "./deployments.scss";
 import React from "react";
 import { observer } from "mobx-react";
 import type { Deployment } from "../../../common/k8s-api/endpoints";
-import { deploymentStore } from "./legacy-store";
-import { eventStore } from "../+events/legacy-store";
 import { KubeObjectListLayout } from "../kube-object-list-layout";
 import { cssNames } from "../../utils";
 import kebabCase from "lodash/kebabCase";
@@ -17,6 +15,11 @@ import orderBy from "lodash/orderBy";
 import { KubeObjectStatusIcon } from "../kube-object-status-icon";
 import { SiblingsInTabLayout } from "../layout/siblings-in-tab-layout";
 import { KubeObjectAge } from "../kube-object/age";
+import type { DeploymentStore } from "./store";
+import type { EventStore } from "../+events/store";
+import { withInjectables } from "@ogre-tools/injectable-react";
+import deploymentStoreInjectable from "./store.injectable";
+import eventStoreInjectable from "../+events/store.injectable";
 
 enum columnId {
   name = "name",
@@ -27,8 +30,13 @@ enum columnId {
   condition = "condition",
 }
 
+interface Dependencies {
+  deploymentStore: DeploymentStore;
+  eventStore: EventStore;
+}
+
 @observer
-export class Deployments extends React.Component {
+class NonInjectedDeployments extends React.Component<Dependencies> {
   renderPods(deployment: Deployment) {
     const { replicas, availableReplicas } = deployment.status ?? {};
 
@@ -50,6 +58,8 @@ export class Deployments extends React.Component {
   }
 
   render() {
+    const { deploymentStore, eventStore } = this.props;
+
     return (
       <SiblingsInTabLayout>
         <KubeObjectListLayout
@@ -93,3 +103,11 @@ export class Deployments extends React.Component {
     );
   }
 }
+
+export const Deployments = withInjectables<Dependencies>(NonInjectedDeployments, {
+  getProps: (di, props) => ({
+    deploymentStore: di.inject(deploymentStoreInjectable),
+    eventStore: di.inject(eventStoreInjectable),
+    ...props,
+  }),
+});
