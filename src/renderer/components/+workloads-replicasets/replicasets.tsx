@@ -7,12 +7,15 @@ import "./replicasets.scss";
 
 import React from "react";
 import { observer } from "mobx-react";
-import { replicaSetStore } from "./legacy-store";
 import { KubeObjectStatusIcon } from "../kube-object-status-icon";
 import { KubeObjectListLayout } from "../kube-object-list-layout";
-import { eventStore } from "../+events/legacy-store";
 import { SiblingsInTabLayout } from "../layout/siblings-in-tab-layout";
 import { KubeObjectAge } from "../kube-object/age";
+import type { ReplicaSetStore } from "./store";
+import type { EventStore } from "../+events/store";
+import { withInjectables } from "@ogre-tools/injectable-react";
+import eventStoreInjectable from "../+events/store.injectable";
+import replicaSetStoreInjectable from "./store.injectable";
 
 enum columnId {
   name = "name",
@@ -23,9 +26,16 @@ enum columnId {
   age = "age",
 }
 
+interface Dependencies {
+  replicaSetStore: ReplicaSetStore;
+  eventStore: EventStore;
+}
+
 @observer
-export class ReplicaSets extends React.Component {
+class NonInjectableReplicaSets extends React.Component<Dependencies> {
   render() {
+    const { replicaSetStore, eventStore } = this.props;
+
     return (
       <SiblingsInTabLayout>
         <KubeObjectListLayout
@@ -70,3 +80,10 @@ export class ReplicaSets extends React.Component {
   }
 }
 
+export const ReplicaSets = withInjectables<Dependencies>(NonInjectableReplicaSets, {
+  getProps: (di, props) => ({
+    eventStore: di.inject(eventStoreInjectable),
+    replicaSetStore: di.inject(replicaSetStoreInjectable),
+    ...props,
+  }),
+});
