@@ -7,14 +7,16 @@ import "./cronjobs.scss";
 
 import React from "react";
 import { observer } from "mobx-react";
-import { cronJobStore } from "./legacy-store";
-import { jobStore } from "../+workloads-jobs/legacy-store";
-import { eventStore } from "../+events/legacy-store";
 import { KubeObjectListLayout } from "../kube-object-list-layout";
 import { KubeObjectStatusIcon } from "../kube-object-status-icon";
 import moment from "moment";
 import { SiblingsInTabLayout } from "../layout/siblings-in-tab-layout";
 import { KubeObjectAge } from "../kube-object/age";
+import type { CronJobStore } from "./store";
+import type { EventStore } from "../+events/store";
+import { withInjectables } from "@ogre-tools/injectable-react";
+import cronJobStoreInjectable from "./store.injectable";
+import eventStoreInjectable from "../+events/store.injectable";
 
 enum columnId {
   name = "name",
@@ -26,9 +28,16 @@ enum columnId {
   age = "age",
 }
 
+interface Dependencies {
+  cronJobStore: CronJobStore;
+  eventStore: EventStore;
+}
+
 @observer
-export class CronJobs extends React.Component {
+class NonInjectedCronJobs extends React.Component<Dependencies> {
   render() {
+    const { cronJobStore, eventStore } = this.props;
+
     return (
       <SiblingsInTabLayout>
         <KubeObjectListLayout
@@ -36,7 +45,7 @@ export class CronJobs extends React.Component {
           tableId="workload_cronjobs"
           className="CronJobs"
           store={cronJobStore}
-          dependentStores={[jobStore, eventStore]}
+          dependentStores={[eventStore]}
           sortingCallbacks={{
             [columnId.name]: cronJob => cronJob.getName(),
             [columnId.namespace]: cronJob => cronJob.getNs(),
@@ -80,3 +89,10 @@ export class CronJobs extends React.Component {
   }
 }
 
+export const CronJobs = withInjectables<Dependencies>(NonInjectedCronJobs, {
+  getProps: (di, props) => ({
+    cronJobStore: di.inject(cronJobStoreInjectable),
+    eventStore: di.inject(eventStoreInjectable),
+    ...props,
+  }),
+});
